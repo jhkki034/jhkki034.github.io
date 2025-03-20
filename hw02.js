@@ -5,8 +5,8 @@
    : 'r' for red, 'g' for green, 'b' for blue
 2) Flip the triangle vertically by keyboard input 'f' 
 ---------------------------------------------------------------------------*/
-import { resizeAspectRatio, setupText } from '/util/util.js';
-import { Shader, readShaderFile } from '/util/shader.js';
+import { resizeAspectRatio, setupText } from '/util.js';
+import { Shader, readShaderFile } from '/shader.js';
 
 const canvas = document.getElementById('glCanvas');
 const gl = canvas.getContext('webgl2');
