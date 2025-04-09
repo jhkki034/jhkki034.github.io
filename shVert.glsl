@@ -1,10 +1,13 @@
 #version 300 es
 
-layout (location = 0) in vec3 aPos;
+in vec4 a_color;
 
-uniform float change_x;
-uniform float change_y;
+in vec3 a_position;
+uniform mat4 u_model;
+
+out vec4 v_color;
 
 void main() {
-    gl_Position = vec4(aPos[0] + change_x, aPos[1] + change_y, aPos[2], 1.0);
+    gl_Position = u_model * vec4(a_position, 1.0);
+    v_color = a_color;
 } 
