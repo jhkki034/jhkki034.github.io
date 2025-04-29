@@ -8,7 +8,6 @@
 
 import { resizeAspectRatio, Axes } from '../util/util.js';
 import { Shader, readShaderFile } from '../util/shader.js';
-import { Cube } from '../util/cube.js';
 import { Arcball } from '../util/arcball.js';
 import { loadTexture } from '../util/texture.js';
 import { Octahedron } from './regularOctahedron.js';
@@ -23,7 +22,7 @@ let viewMatrix = mat4.create();
 let projMatrix = mat4.create();
 let modelMatrix = mat4.create();
 const axes = new Axes(gl, 1.5); // create an Axes object with the length of axis 1.5
-const texture = loadTexture(gl, true, '../textures/sunrise.jpg'); // see ../util/texture.js
+const texture = loadTexture(gl, true, '../images/textures/sunrise.jpg'); // see ../util/texture.js
 // const cube = new Cube(gl);
 const object = new Octahedron(gl);
 
@@ -59,7 +58,7 @@ function initWebGL() {
     canvas.height = 700;
     resizeAspectRatio(gl, canvas);
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(0.7, 0.8, 0.9, 1.0);
+    gl.clearColor(0.1, 0.2, 0.3, 1.0);
     
     return true;
 }
@@ -67,13 +66,12 @@ function initWebGL() {
 async function initShader() {
     const vertexShaderSource = await readShaderFile('shVert.glsl');
     const fragmentShaderSource = await readShaderFile('shFrag.glsl');
-    return new Shader(gl, vertexShaderSource, fragmentShaderSource);
+    shader = new Shader(gl, vertexShaderSource, fragmentShaderSource);
 }
 
 function render() {
 
     // clear canvas
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
 
@@ -101,7 +99,7 @@ async function main() {
             throw new Error('WebGL 초기화 실패');
         }
         
-        shader = await initShader();
+        await initShader();
 
         // View transformation matrix (camera at (0,0,-3), invariant in the program)
         mat4.translate(viewMatrix, viewMatrix, vec3.fromValues(0, 0, -3));
@@ -112,7 +110,7 @@ async function main() {
             glMatrix.toRadian(60),  // field of view (fov, degree)
             canvas.width / canvas.height, // aspect ratio
             0.1, // near
-            100.0 // far
+            1000.0 // far
         );
 
         // bind the texture to the shader
