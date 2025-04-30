@@ -49,11 +49,11 @@ export class Octahedron {
         this.normals = normals;
 
         this.texCoords = new Float32Array([
-            // Top pyramid (faces 0–3), upper half of texture (y = 0.5 ~ 1.0)
-            0.5, 1.0,   0.0, 0.5,   0.25, 0.5,   // face 0
-            0.5, 1.0,   0.25, 0.5,  0.5,  0.5,   // face 1
-            0.5, 1.0,   0.5,  0.5,  0.75, 0.5,   // face 2
-            0.5, 1.0,   0.75, 0.5,  1.0,  0.5,   // face 3
+            // Top pyramid faces
+            0.5, 0.75,   0.0, 0.5,   0.25, 0.5,   // face 0
+            0.5, 0.75,   0.25, 0.5,  0.5,  0.5,   // face 1
+            0.5, 0.75,   0.5,  0.5,  0.75, 0.5,   // face 2
+            0.5, 0.75,   0.75, 0.5,  1.0,  0.5,   // face 3
 
             // Bottom pyramid (faces 4–7), lower half of texture (y = 0.0 ~ 0.5)
             0.5, 0.0,   0.25, 0.5,  0.0,  0.5,   // face 4
