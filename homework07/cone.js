@@ -80,28 +80,29 @@ export class Cone {
 
     computeVertexNormals() {
         const vCount = this.vertices.length / 3;
-        const h = 1.0;
-        const r = 0.5;
-        const slope = r / h;
+        // 새로 계산된 스무스 노말을 담을 버퍼 (vertices와 동일 크기)
         this.vertexNormals = new Float32Array(this.vertices.length);
 
         for (let i = 0; i < vCount; i++) {
             const x = this.vertices[i * 3 + 0];
-            const y = this.vertices[i * 3 + 1];
+            const y = this.vertices[i * 3 + 1]; // 여기서는 y는 노말 계산에 사용 X
             const z = this.vertices[i * 3 + 2];
 
-            if (y > 0.4) {
-                this.vertexNormals.set([0, 1, 0], i * 3);
-                continue;
+            // y축에 수직 -> (x, 0, z)를 정규화
+            const len = Math.sqrt(x * x + z * z);
+            // (len == 0)이 되는 경우는 없지만, 혹시 대비
+            if (len > 0) {
+                this.vertexNormals[i * 3 + 0] = x / len;
+                this.vertexNormals[i * 3 + 1] = 0;
+                this.vertexNormals[i * 3 + 2] = z / len;
+            } else {
+                // 혹시 모를 예외 상황(정말로 x=z=0이라면)
+                this.vertexNormals[i * 3 + 0] = 0;
+                this.vertexNormals[i * 3 + 1] = 1; // 그냥 y축 위로
+                this.vertexNormals[i * 3 + 2] = 0;
             }
-
-            const nx = x;
-            const ny = slope;
-            const nz = z;
-            const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
-            this.vertexNormals.set([nx / len, ny / len, nz / len], i * 3);
         }
-    }
+    }    
 
     copyFaceNormalsToNormals() {
         this.normals.set(this.faceNormals);
