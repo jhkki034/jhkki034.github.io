@@ -1,20 +1,8 @@
-/*--------------------------------------------------------------------------------
-18_SmoothShading.js
-
-- Viewing a 3D unit cylinder at origin with perspective projection
-- Rotating the cylinder by ArcBall interface (by left mouse button dragging)
-- Keyboard controls:
-    - 'a' to switch between camera and model rotation modes in ArcBall interface
-    - 'r' to reset arcball
-    - 's' to switch to smooth shading
-    - 'f' to switch to flat shading
-- Applying Diffuse & Specular reflection using Flat/Smooth shading to the cylinder
-----------------------------------------------------------------------------------*/
 import { resizeAspectRatio, setupText, updateText} from '../util/util.js';
 import { Shader, readShaderFile } from '../util/shader.js';
 import { Cube } from '../util/cube.js';
 import { Arcball } from '../util/arcball.js';
-import { Cylinder } from '../util/cylinder.js';
+import { Cone } from './cone.js';
 
 const canvas = document.getElementById('glCanvas');
 const gl = canvas.getContext('webgl2');
@@ -30,8 +18,9 @@ let modelMatrix = mat4.create();
 let lampModelMatrix = mat4.create();
 let arcBallMode = 'CAMERA';     // 'CAMERA' or 'MODEL'
 let shadingMode = 'SMOOTH';       // 'FLAT' or 'SMOOTH'
+let renderMode = 'PHONG'; // phong or gouraud
 
-const cylinder = new Cylinder(gl, 32);
+const cylinder = new Cone(gl, 32);
 const lamp = new Cube(gl);
 
 const cameraPos = vec3.fromValues(0, 0, 3);
@@ -80,16 +69,27 @@ function setupKeyboardEvents() {
             cylinder.copyVertexNormalsToNormals();
             cylinder.updateNormals();
             shadingMode = 'SMOOTH';
-            updateText(textOverlay3, "shading mode: " + shadingMode);
+            updateText(textOverlay3, "shading mode: " + shadingMode + " (" + renderMode + ")");
             render();
         }
         else if (event.key == 'f') {
             cylinder.copyFaceNormalsToNormals();
             cylinder.updateNormals();
             shadingMode = 'FLAT';
-            updateText(textOverlay3, "shading mode: " + shadingMode);
+            updateText(textOverlay3, "shading mode: " + shadingMode + " (" + renderMode + ")");
             render();
         }
+        else if (event.key == 'p') {
+            renderMode = 'PHONG';
+            updateText(textOverlay3, "shading mode: " + shadingMode + " (" + renderMode + ")");
+            render();
+        }
+        else if (event.key == 'g') {
+            renderMode = 'GOURAUD';
+            updateText(textOverlay3, "shading mode: " + shadingMode + " (" + renderMode + ")");
+            render();
+        }
+        
     });
 }
 
@@ -135,6 +135,7 @@ function render() {
 
     // drawing the cylinder
     shader.use();  // using the cylinder's shader
+    shader.setInt("u_renderMode", renderMode === 'PHONG' ? 0 : 1);
     shader.setMat4('u_model', modelMatrix);
     shader.setMat4('u_view', viewMatrix);
     shader.setVec3('u_viewPos', cameraPos);
@@ -197,11 +198,13 @@ async function main() {
 
         setupText(canvas, "Smooth Shading", 1);
         textOverlay2 = setupText(canvas, "arcball mode: " + arcBallMode, 2);
-        textOverlay3 = setupText(canvas, "shading mode: " + shadingMode, 3);
+        textOverlay3 = setupText(canvas, "shading mode: " + shadingMode + " (" + renderMode + ")", 3);
         setupText(canvas, "press 'a' to change arcball mode", 4);
         setupText(canvas, "press 'r' to reset arcball", 5);
         setupText(canvas, "press 's' to switch to smooth shading", 6);
         setupText(canvas, "press 'f' to switch to flat shading", 7);
+        setupText(canvas, "press 'g' to switch to Gouraud shading", 8);
+        setupText(canvas, "press 'p' to switch to Phong shading", 9);
         setupKeyboardEvents();
 
         // call the render function the first time for animation
