@@ -15,7 +15,6 @@ import { resizeAspectRatio, setupText, updateText, Axes } from '../util/util.js'
 import { Shader, readShaderFile } from '../util/shader.js';
 import { Arcball } from '../util/arcball.js';
 import { Cylinder } from '../util/cylinder.js';
-import { loadTexture } from '../util/texture.js';
 
 const canvas = document.getElementById('glCanvas');
 const gl = canvas.getContext('webgl2');
@@ -33,7 +32,6 @@ let toonLevels = 3;
 
 const cylinder = new Cylinder(gl, 32);
 const axes = new Axes(gl, 1.5); // create an Axes object with the length of axis 1.5
-const texture = loadTexture(gl, true, '../images/textures/sunrise.jpg');
 
 const cameraPos = vec3.fromValues(0, 0, 3);
 const lightDirection = vec3.fromValues(1.0, 0.25, 0.5);
@@ -173,14 +171,10 @@ async function main() {
         shader.setVec3("light.ambient", vec3.fromValues(0.2, 0.2, 0.2));
         shader.setVec3("light.diffuse", vec3.fromValues(0.7, 0.7, 0.7));
         shader.setVec3("light.specular", vec3.fromValues(1.0, 1.0, 1.0));
-        shader.setInt("material.diffuse", 0);
+        shader.setVec3("material.baseColor", [1.0, 0.4, 0.0]);
         shader.setVec3("material.specular", vec3.fromValues(0.8, 0.8, 0.8));
         shader.setFloat("material.shininess", shininess);
         shader.setVec3("u_viewPos", cameraPos);
-
-        // bind the texture to the shader
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
         
         cylinder.copyVertexNormalsToNormals();  // Smooth shading용
         cylinder.updateNormals();

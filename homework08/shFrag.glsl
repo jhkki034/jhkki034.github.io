@@ -8,7 +8,7 @@ in vec3 normal;
 in vec2 texCoord;
 
 struct Material {
-    sampler2D diffuse; // diffuse map
+    vec3 baseColor;
     vec3 specular;     // 표면의 specular color
     float shininess;   // specular 반짝임 정도
 };
@@ -36,7 +36,7 @@ float quantize(float x, int level) {
 
 void main() {
     // ambient
-    vec3 rgb = texture(material.diffuse, texCoord).rgb;
+    vec3 rgb = material.baseColor;
     vec3 ambient = light.ambient * rgb;
   	
     // diffuse 
