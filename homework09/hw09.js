@@ -8,13 +8,12 @@ import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 const scene = new THREE.Scene();
 scene.backgroundColor = 0x0;  // white background
 
-// Perspective camera: fov, aspect ratio, near, far
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
-
-// set camera position: camera.position.set(-3, 8, 2) 가 더 많이 사용됨 (약간 빠름))
-camera.position.x = -3;
-camera.position.y = 8;
-camera.position.z = 2;
+// Camera를 perspective와 orthographic 두 가지로 switching 해야 해서 const가 아닌 let으로 선언
+let camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.x = 60;
+camera.position.y = 30;
+camera.position.z = 90;
+camera.lookAt(scene.position);
 
 // add camera to the scene
 scene.add(camera);
@@ -31,11 +30,6 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 renderer.shadowMap.enabled = true; // scene에서 shadow를 보이게
 
-// shadowMap의 종류
-// BasicShadowMap: 가장 기본적인 shadow map, 쉽고 빠르지만 부드럽지 않음
-// PCFShadowMap (default): Percentage-Closer Filtering, 주변의 색상을 평균내서 부드럽게 보이게 함
-// PCFSoftShadowMap: 더 부드럽게 보이게 함
-// VSMShadowMap: Variance Shadow Map, 더 자연스러운 블러 효과, GPU에서 더 많은 연산 필요
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 // 현재 열린 browser window의 width와 height에 맞게 renderer의 size를 설정
@@ -49,28 +43,118 @@ const stats = new Stats();
 // attach Stats to the body of the html page
 document.body.appendChild(stats.dom);
 
-// add OrbitControls: arcball-like camera control
-const orbitControls = new OrbitControls(camera, renderer.domElement);
-orbitControls.enableDamping = true; // 관성효과, 바로 멈추지 않고 부드럽게 멈춤
-orbitControls.dampingFactor = 0.05; // 감속 정도, 크면 더 빨리 감속, default = 0.05
+// Camera가 바뀔 때 orbitControls도 바뀌어야 해서 let으로 선언
+let orbitControls = new OrbitControls(camera, renderer.domElement);
+orbitControls.enableDamping = true;
 
-// add GUI: 간단한 user interface를 제작 가능
-// 사용법은 https://lil-gui.georgealways.com/ 
-// http://yoonbumtae.com/?p=942 참고
-
+// GUI
 const gui = new GUI();
-const props = {
-    cubeRotSpeed: 0.01,
-    torusRotSpeed: 0.01,
+const controls = new function () {
+    this.perspective = "Perspective";
+    this.switchCamera = function () {
+        if (camera instanceof THREE.PerspectiveCamera) {
+            scene.remove(camera);
+            camera = null; // 기존의 camera 제거    
+            // OrthographicCamera(left, right, top, bottom, near, far)
+            camera = new THREE.OrthographicCamera(window.innerWidth / -16, 
+                window.innerWidth / 16, window.innerHeight / 16, window.innerHeight / -16, -200, 500);
+            camera.position.x = 120;
+            camera.position.y = 120;
+            camera.position.z = 180;
+            camera.lookAt(scene.position);
+            orbitControls.dispose(); // 기존의 orbitControls 제거
+            orbitControls = null;
+            orbitControls = new OrbitControls(camera, renderer.domElement);
+            orbitControls.enableDamping = true;
+            this.perspective = "Orthographic";
+        } else {
+            scene.remove(camera);
+            camera = null; 
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.x = 60;
+            camera.position.y = 30;
+            camera.position.z = 90;
+            camera.lookAt(scene.position);
+            orbitControls.dispose(); // 기존의 orbitControls 제거
+            orbitControls = null;
+            orbitControls = new OrbitControls(camera, renderer.domElement);
+            orbitControls.enableDamping = true;
+            this.perspective = "Perspective";
+        }
+    };
 };
-gui.add(props, 'cubeRotSpeed', -0.2, 0.2, 0.01);
-gui.add(props, 'torusRotSpeed', -0.2, 0.2, 0.01);
+const cameraFolder = gui.addFolder('Camera');
+cameraFolder.add(controls, 'switchCamera').name("Switch Camera");
+cameraFolder.add(controls, 'perspective').name("Current View").listen();
 
+// sun
+const textureLoader = new THREE.TextureLoader();
+const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // 노란색
+const sunGeometry = new THREE.SphereGeometry(10, 64, 64);
+const sunMesh = new THREE.Mesh(sunGeometry, sunMaterial);
+scene.add(sunMesh);
+
+// PLANET DATA
+const planetsData = [
+  {
+    name: 'Mercury', radius: 1.5, distance: 20, color: '#a6a6a6',
+    texture: 'Mercury.jpg', rotationSpeed: 0.02, orbitSpeed: 0.02
+  },
+  {
+    name: 'Venus', radius: 3, distance: 35, color: '#e39e1c',
+    texture: 'Venus.jpg', rotationSpeed: 0.015, orbitSpeed: 0.015
+  },
+  {
+    name: 'Earth', radius: 3.5, distance: 50, color: '#3498db',
+    texture: 'Earth.jpg', rotationSpeed: 0.01, orbitSpeed: 0.01
+  },
+  {
+    name: 'Mars', radius: 2.5, distance: 65, color: '#c0392b',
+    texture: 'Mars.jpg', rotationSpeed: 0.008, orbitSpeed: 0.008
+  }
+];
+
+const planets = [];
+
+planetsData.forEach(data => {
+  const planetMat = new THREE.MeshStandardMaterial({ map: textureLoader.load(data.texture), roughness: 0.8, metalness: 0.2 });
+  const planetMesh = new THREE.Mesh(new THREE.SphereGeometry(data.radius, 32, 32), planetMat);
+
+  const pivot = new THREE.Object3D();
+  pivot.add(planetMesh);
+  scene.add(pivot);
+
+  planetMesh.position.x = data.distance;
+
+  const planetInfo = {
+    name: data.name,
+    mesh: planetMesh,
+    pivot: pivot,
+    rotationSpeed: data.rotationSpeed,
+    orbitSpeed: data.orbitSpeed,
+    angle: 0
+  };
+  planets.push(planetInfo);
+
+  const folder = gui.addFolder(data.name);
+  folder.add(planetInfo, 'rotationSpeed', 0, 0.1, 0.001).name("Rotation Speed");
+  folder.add(planetInfo, 'orbitSpeed', 0, 0.1, 0.001).name("Orbit Speed");
+});
 
 // listen to the resize events
 window.addEventListener('resize', onResize, false);
-function onResize() { // resize handler
-    camera.aspect = window.innerWidth / window.innerHeight;
+function onResize() {
+    const aspect = window.innerWidth / window.innerHeight;
+
+    if (camera instanceof THREE.PerspectiveCamera) {
+        camera.aspect = aspect;
+    } else {
+        camera.left = window.innerWidth / -16;
+        camera.right = window.innerWidth / 16;
+        camera.top = window.innerHeight / 16;
+        camera.bottom = window.innerHeight / -16;
+    }
+
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
@@ -85,93 +169,36 @@ dirLight.position.set(5, 12, 8); // 여기서 부터 (0, 0, 0) 방향으로 ligh
 dirLight.castShadow = true;  // 이 light가 shadow를 만들어 낼 것임
 scene.add(dirLight);
 
-/*----- Directional light의 target 위치 바꾸기 ----------------------
-
-  // Default target 위치는 (0, 0, 0)임
-
-  const light = new THREE.DirectionalLight(0xffffff, 1);
-  light.position.set(10, 10, 10); // 광원이 있는 위치
-
-  // Target Object 생성 (dummy object), Mesh는 Object3D의 subclass
-  const targetObject = new THREE.Object3D();
-  targetObject.position.set(5, 0, 0); // Target's position
-  scene.add(targetObject);
-
-  // Light의 Target 지정
-  light.target = targetObject;
-  scene.add(light);
------------------------------------------------------------------*/
-
-// create a cube and add it to the scene
-// BoxGeometry: width, height, depth의 default는 1
-//            : default center position = (0, 0, 0)
-const cubeGeometry = new THREE.BoxGeometry();
-
-// MeshLambertMaterial: ambient + diffuse
-const cubeMaterial = new THREE.MeshLambertMaterial({ color:0x990000 });
-
-// 하나의 mesh는 geometry와 material로 이루어짐
-const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-cube.position.x = -1;
-cube.castShadow = true; // light를 받을 떄 shadow를 만들어 냄
-scene.add(cube);
-
-// TorusKnotGeometry(radius, tube, tubularSegment, radialSegments, p, q)
-// Threejs.org의 manual 참고 할 것
-//                 : radius (default = 1), 전체 torus의 반지름
-//                 : tube (default = 0.4), torus tube의 반지름
-//                 : tubularSegments (default = 64), 전체 torus를 나누는 horizontal segment의 개수
-//                 : radialSegments (default = 8), torus tube를 나누는 vertical segment의 개수
-//                 : p (default = 2), torus가 만드는 원 모양의 감긴 개수
-//                 : q (default = 3), torus의 큰 circle을 휘감는 개수
 const torusKnotGeometry = new THREE.TorusKnotGeometry(0.5, 0.2, 100, 100);
 
 // MeshPhongMaterial: ambient + diffuse + specular
 const torusKnotMat = new THREE.MeshPhongMaterial({
 	color: 0x00ff88,
 });
-const torusKnotMesh = new THREE.Mesh(torusKnotGeometry,torusKnotMat);
-torusKnotMesh.castShadow = true; // light를 받을 떄 shadow를 만들어 냄
-torusKnotMesh.position.x = 2;
-scene.add(torusKnotMesh);
-
-// add a plane: 원래 plane은 xy plane 위에 생성됨
-const planeGeometry = new THREE.PlaneGeometry(15, 15); // width, height
-const planeMaterial = new THREE.MeshLambertMaterial({ color: 0xaaaa00 });
-const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-plane.rotation.x = -Math.PI / 2;  // x축 기준으로 -90도 회전 (+y를 up으로 하는 plane이 됨)
-plane.position.y = -1;
-plane.receiveShadow = true;
-scene.add(plane);
+// const torusKnotMesh = new THREE.Mesh(torusKnotGeometry,torusKnotMat);
+// torusKnotMesh.castShadow = true; // light를 받을 떄 shadow를 만들어 냄
+// torusKnotMesh.position.x = 2;
+// scene.add(torusKnotMesh);
 
 let step = 0;
 
 function animate() {
-
-    // stats와 orbitControls는 매 frame마다 update 해줘야 함
     stats.update();
     orbitControls.update();
 
     step += 0.02;
-    cube.position.x = 4 * Math.cos(step);  // x = -4 ~ 4 사이를 왕복
-    cube.position.y = 4 * Math.abs(Math.sin(step));  // y = 0 ~ 4 사이를 왕복
 
-    // cube의 rotation transformation (model transformation)
-    // 각각 x, y, z 축을 기준으로 하는 rotation angle (radian)
-    cube.rotation.x += props.cubeRotSpeed;
-    cube.rotation.y += props.cubeRotSpeed;
-    cube.rotation.z += props.cubeRotSpeed;
+    // torusKnotMesh.rotation.x -= props.torusRotSpeed;
+    // torusKnotMesh.rotation.y += props.torusRotSpeed;
+    // torusKnotMesh.rotation.z -= props.torusRotSpeed;
 
-    // torusKnot의 rotation transformation
-    // 각각 x, y, z 축을 기준으로 하는 rotation angle (radian)
-    torusKnotMesh.rotation.x -= props.torusRotSpeed;
-    torusKnotMesh.rotation.y += props.torusRotSpeed;
-    torusKnotMesh.rotation.z -= props.torusRotSpeed;
+    // 🌎 각 행성의 자전/공전 구현
+    planets.forEach(p => {
+        p.mesh.rotation.y += p.rotationSpeed;  // 자전
+        p.pivot.rotation.y += p.orbitSpeed;    // 공전
+    });
 
-    // 모든 transformation 적용 후, renderer에 렌더링을 한번 해 줘야 함
     renderer.render(scene, camera);
-
-    // 다음 frame을 위해 requestAnimationFrame 호출 
     requestAnimationFrame(animate);
 }
 
