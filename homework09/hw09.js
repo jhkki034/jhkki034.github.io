@@ -175,10 +175,6 @@ const torusKnotGeometry = new THREE.TorusKnotGeometry(0.5, 0.2, 100, 100);
 const torusKnotMat = new THREE.MeshPhongMaterial({
 	color: 0x00ff88,
 });
-// const torusKnotMesh = new THREE.Mesh(torusKnotGeometry,torusKnotMat);
-// torusKnotMesh.castShadow = true; // light를 받을 떄 shadow를 만들어 냄
-// torusKnotMesh.position.x = 2;
-// scene.add(torusKnotMesh);
 
 let step = 0;
 
@@ -188,11 +184,6 @@ function animate() {
 
     step += 0.02;
 
-    // torusKnotMesh.rotation.x -= props.torusRotSpeed;
-    // torusKnotMesh.rotation.y += props.torusRotSpeed;
-    // torusKnotMesh.rotation.z -= props.torusRotSpeed;
-
-    // 🌎 각 행성의 자전/공전 구현
     planets.forEach(p => {
         p.mesh.rotation.y += p.rotationSpeed;  // 자전
         p.pivot.rotation.y += p.orbitSpeed;    // 공전
